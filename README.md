@@ -4,6 +4,9 @@ Bluetooth Low-Energy Xiaomi-specific ESPHome proxy for ESP32 devices. Proxies mu
 
 Tested with LYWSD03MMC thermometers - they're super-cheap.
 
+Last update 2021-12-21. 
+Written by John Mueller (johnmu.com)
+
 ## Goals
 
 BTLE thermometers are cheap, and last a long time on battery. However, they use BTLE to communicate, which doesn't go far (10-15m? YMMV). ESP32 devices are also cheap, they support both BTLE as well as Wifi. This project proxies BTLE to MQTT via Wifi, supporting multiple devices that don't need to be configured individually. Using MQTT also enables basic fault tolerance. 
@@ -19,13 +22,15 @@ Add BTLE devices where you need them, add proxies nearby as needed.
 5. Compile & run this code on an ESP32
 6. Repeat to place proxy devices in strategic locations
 
+Note that when using the proxy, don't also read the BTLE values directly with Home Assistant (you'll just get duplicated sensors). Don't use the BTLE module there, only use MQTT.
+
 ## BTLE Device firmware
 
 I used [pvvx's ATC firmware](https://github.com/pvvx/ATC_MiThermometer). This seems to work well on the Xiaomi Mi / LYWSD03MMC devices I have. 
 
 The simplest way is to navigate to the [flasher page](https://pvvx.github.io/ATC_MiThermometer/TelinkMiFlasher.html) on a smartphone, connect to the BTLE device, flash the firmware, and then configure the firmware to use "Mi" connections (this is compatible with all Xiaomi-like software).
 
-Device lifetime seems to be 12-18 months on a CR2032 battery.
+Device lifetime seems to be 12-18 months on a CR2032 battery. Use the default settings with 2.5 seconds interval since ESP32 BTLE isn't that great.
 
 ## Proxy setup
 
@@ -174,9 +179,11 @@ Optional settings:
 
 ## Supported BTLE devices
 
-Theoretically this supports various Xiaomi BTLE devices. I only have the thermometers. 
+Theoretically this supports various Xiaomi BTLE devices. I only have the thermometers. Aliexpress or a local electronics shop is your friend.
 
-The code proxies measurements for:
+You must remove the bind-keys for this to work (with the previously-mentioned firmware). The device will continue to work as previously without bind-keys, you can use any Xiaomi-supported app to also read the devices.
+
+This code proxies measurements for:
 
 * temperature
 * humidity
@@ -189,3 +196,6 @@ The code proxies measurements for:
 * "has motion" (another switch?)
 * "is light" (yet another switch?)
 
+## Updates
+
+* 2021-12-21 - initial commit (has been running for >1 year now)
