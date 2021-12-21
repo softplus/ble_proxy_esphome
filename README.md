@@ -142,8 +142,8 @@ Optional settings:
 
   ```
   mac_addresses_renamed:
-    \- "A4:C1:38:00:11:22=A4:C1:38:AA:BB:CC"
-    \- "A4:C1:38:00:22:44=GUESTROOM"
+   - "A4:C1:38:00:11:22=A4:C1:38:AA:BB:CC"
+   - "A4:C1:38:00:22:44=GUESTROOM"
   ```
 
 * mac_addresses_allowed
@@ -153,9 +153,11 @@ Optional settings:
 
   ```mac_addresses_allowed: ["A4:C1:38:00:11:22", "A4:C1:38:00:22:44"]```
 
-  ```mac_addresses_allowed:```
-  ```  \- "A4:C1:38:00:11:22"```
-  ```  \- "A4:C1:38:00:22:44"```
+  ```
+  mac_addresses_allowed:
+   - "A4:C1:38:00:11:22"
+   - "A4:C1:38:00:22:44"
+  ```
 
 * mac_addresses_blocked
   If you have a lot of BTLE devices and *don't* want to proxy a portion of them, specify them like this. All other devices are proxied. Blocked MACs are processed before renames.
@@ -164,9 +166,11 @@ Optional settings:
 
   ```mac_addresses_blocked: ["A4:C1:38:00:11:22", "A4:C1:38:00:22:44"]```
 
-  ```mac_addresses_blocked:```
-  ```  \- "A4:C1:38:00:11:22"```
-  ```  \- "A4:C1:38:00:22:44"```
+  ```
+  mac_addresses_blocked:
+   - "A4:C1:38:00:11:22"
+   - "A4:C1:38:00:22:44"
+  ```
 
 ## Supported BTLE devices
 
