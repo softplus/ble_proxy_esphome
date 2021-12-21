@@ -206,4 +206,4 @@ Want to drop a coffee this way?
 
 bitcoin:37DEF8fJZTuSLYVMK4sfhfkEhqrVQcKg6N
 
-!()[bitcoin-qr.png]
+![Bitcoin QR code](bitcoin-qr.png)
