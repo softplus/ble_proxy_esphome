@@ -1,0 +1,39 @@
+# Generic ble_proxy ESPHome config
+# 
+# Upload with:
+# esphome -s name yourdevicename run ble_proxy_default.yaml
+#
+
+substitutions:
+  name: default
+  <<: !include secrets.yaml
+
+# secrets.yaml definitions:
+#   wifi_ssid, wifi_password
+#   wifi_hotspot, ota_password
+#   mqtt_broker, mqtt_username, mqtt_password
+
+esphome:
+  name: ${name}
+  platform: ESP32
+  board: esp32dev
+
+wifi:
+  ssid: ${wifi_ssid}
+  password: ${wifi_password}
+
+logger:
+api:
+ota:
+esp32_ble_tracker:
+
+mqtt:
+  id: mqtt_client
+  broker: ${mqtt_broker}
+  username: ${mqtt_username}
+  password: ${mqtt_password}
+
+sensor:
+  - platform: ble_proxy
+    hostname: ${name}
+    mqtt_client_id: mqtt_client

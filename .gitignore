@@ -1,32 +1,13 @@
-# Prerequisites
-*.d
+# ESPHome specific
+/.esphome/
+**/.pioenvs/
+**/.piolibdeps/
+**/lib/
+**/src/
+**/platformio.ini
+**/partitions.csv
+**/**/__pycache__/
+/.venv/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+# Your secrets file
+/secrets.yaml
