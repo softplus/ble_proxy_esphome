@@ -1,4 +1,5 @@
 # ble_proxy_esphome
+
 Bluetooth Low-Energy Xiaomi-specific ESPHome proxy for ESP32 devices. Proxies multiple BTLE devices to MQTT.
 
 Tested with LYWSD03MMC thermometers - they're super-cheap.
@@ -137,11 +138,13 @@ Optional settings:
 
   Examples:
 
-  mac_addresses_renamed: ```"A4:C1:38:00:11:22=A4:C1:38:AA:BB:CC"```
+  ```mac_addresses_renamed: "A4:C1:38:00:11:22=A4:C1:38:AA:BB:CC"```
 
-  ```mac_addresses_renamed:```
-  ```  \- "A4:C1:38:00:11:22=A4:C1:38:AA:BB:CC"```
-  ```  \- "A4:C1:38:00:22:44=GUESTROOM"```
+  ```
+  mac_addresses_renamed:
+    \- "A4:C1:38:00:11:22=A4:C1:38:AA:BB:CC"
+    \- "A4:C1:38:00:22:44=GUESTROOM"
+  ```
 
 * mac_addresses_allowed
   If you have a lot of BTLE devices and *only* want to proxy a portion of them, specify them like this. Allowed MACs are processed before renames.
