@@ -200,7 +200,7 @@ This code proxies measurements for:
 
 * 2021-12-21 - initial commit (has been running for >1 year now)
 
-## 
+## Done
 
 Want to drop a coffee this way?
 
