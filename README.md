@@ -199,3 +199,11 @@ This code proxies measurements for:
 ## Updates
 
 * 2021-12-21 - initial commit (has been running for >1 year now)
+
+## 
+
+Want to drop a coffee this way?
+
+bitcoin:37DEF8fJZTuSLYVMK4sfhfkEhqrVQcKg6N
+
+!()[bitcoin-qr.png]
