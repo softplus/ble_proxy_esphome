@@ -4,7 +4,7 @@ Bluetooth Low-Energy Xiaomi-specific ESPHome proxy for ESP32 devices. Proxies mu
 
 Tested with LYWSD03MMC thermometers - they're super-cheap.
 
-Last update 2021-12-21. 
+Last update 2023-07-02. 
 Written by John Mueller (johnmu.com)
 
 ## Goals
