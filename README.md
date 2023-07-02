@@ -177,6 +177,13 @@ Optional settings:
    - "A4:C1:38:00:22:44"
   ```
 
+* notify_interval
+  Collects sensor values over this period of time and sends the average value over this time.
+
+  Example:
+  ```notify_interval: 15min```
+
+
 ## Supported BTLE devices
 
 Theoretically this supports various Xiaomi BTLE devices. I only have the thermometers. Aliexpress or a local electronics shop is your friend.
@@ -199,5 +206,8 @@ This code proxies measurements for:
 ## Updates
 
 * 2021-12-21 - initial commit (has been running for >1 year now)
+* 2023-07-02 - Support ble_enable() and ble_disable()
+* 2023-07-02 - Support notify_interval setting to reduce MQTT spam
+* 2023-07-02 - Send autodiscovery MQTT once per boot
 
 ## Done
