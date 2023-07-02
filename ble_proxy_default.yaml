@@ -37,3 +37,4 @@ sensor:
   - platform: ble_proxy
     hostname: ${name}
     mqtt_client_id: mqtt_client
+    notify_interval: 15min

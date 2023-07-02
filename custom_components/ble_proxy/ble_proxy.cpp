@@ -1,5 +1,5 @@
 /*
-Copyright 2021 John Mueller
+Copyright 2021-2023 John Mueller
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 2 of the License, or
@@ -15,6 +15,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ble_proxy.h"
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
+#include <esp_bt_main.h>
+#include <esp_bt.h>
+#include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
 
 // #ifdef ARDUINO_ARCH_ESP32
 
@@ -55,34 +58,34 @@ bool BLE_PROXY::parse_device(const esp32_ble_tracker::ESPBTDevice &device) {
 
     // all types from xiaomi_ble.cpp
     if (res->temperature.has_value()) {
-      this->send_data(device, "temperature", *res->temperature);
+      this->notify_data(device, "temperature", *res->temperature);
     }
     if (res->humidity.has_value()) {
-      this->send_data(device, "humidity", *res->humidity);
+      this->notify_data(device, "humidity", *res->humidity);
     }
     if (res->battery_level.has_value()) {
-      this->send_data(device, "battery_level", *res->battery_level);
+      this->notify_data(device, "battery_level", *res->battery_level);
     }
     if (res->conductivity.has_value()) {
-      this->send_data(device, "conductivity", *res->conductivity);
+      this->notify_data(device, "conductivity", *res->conductivity);
     }
     if (res->illuminance.has_value()) {
-      this->send_data(device, "illuminance", *res->illuminance);
+      this->notify_data(device, "illuminance", *res->illuminance);
     }
     if (res->moisture.has_value()) {
-      this->send_data(device, "moisture", *res->moisture);
+      this->notify_data(device, "moisture", *res->moisture);
     }
     if (res->tablet.has_value()) {
-      this->send_data(device, "tablet", *res->tablet);
+      this->notify_data(device, "tablet", *res->tablet);
     }
     if (res->is_active.has_value()) { // (*res->is_active) ? "on" : "off");
-      this->send_data(device, "is_active", (*res->is_active)?1:0);
+      this->notify_data(device, "is_active", (*res->is_active)?1:0);
     }
     if (res->has_motion.has_value()) { // (*res->has_motion) ? "yes" : "no");
-      this->send_data(device, "has_motion", (*res->has_motion)?1:0);
+      this->notify_data(device, "has_motion", (*res->has_motion)?1:0);
     }
     if (res->is_light.has_value()) { //(*res->is_light) ? "on" : "off");
-      this->send_data(device, "is_light", (*res->is_light)?1:0);
+      this->notify_data(device, "is_light", (*res->is_light)?1:0);
     }
 
     success = true;
@@ -190,29 +193,73 @@ void BLE_PROXY::seen_device(const esp32_ble_tracker::ESPBTDevice &device) {
   ESP_LOGD(TAG, "MQTT published: %s = %s", topic.c_str(), value.c_str());
 }
 
-/* Send the current datapoint to MQTT
+/* Notify of new dataset, check if publishable
 */
-void BLE_PROXY::send_data(const esp32_ble_tracker::ESPBTDevice &device, 
+void BLE_PROXY::notify_data(const esp32_ble_tracker::ESPBTDevice &device, 
     std::string label, double value) {
-  ESP_LOGD(TAG, "Device '%s', Attribute '%s' = %.1f", device.address_str().c_str(), 
+  ESP_LOGD(TAG, "notify_data: Device '%s', Attribute '%s' = %.1f", device.address_str().c_str(), 
     label.c_str(), value);
-  if (this->mqtt_parent_->is_connected()) {
-    std::string primary(MQTT_BASE);
-    std::string dev_addr(this->get_device_name(device));
-    std::string topic(primary + "/" + dev_addr + "/" + label + "/" + "state");
-    std::string vala(value_accuracy_to_string(value, 1));
 
-    this->send_autodiscovery(dev_addr, topic, label);
-    this->mqtt_parent_->publish(topic, vala, 0, true);
-    ESP_LOGD(TAG, "MQTT published: %s = %s", topic.c_str(), vala.c_str());
-  } else {
-    ESP_LOGD(TAG, "MQTT not connected.");
+  // check if seen
+  std::string dev_addr(this->get_device_name(device));
+  std::string dev_sensor(dev_addr + "/" + label);
+  bool new_device = !(sensors_last_notified_.count(dev_sensor));
+  if (new_device) { // new sensor, send immediately, do auto-discovery
+    ESP_LOGD(TAG, "notify_data: Device '%s' is new", dev_sensor.c_str());
+
+    bool ok = this->send_data_mqtt(device, label, value, true);
+    if (ok) {    
+      sensors_value_sum_[dev_sensor] = 0.0;
+      sensors_value_count_[dev_sensor] = 0;
+      sensors_last_notified_[dev_sensor] = millis();
+    }
+  } else { // known sensor, potentially average values
+    sensors_value_sum_[dev_sensor] += value;
+    sensors_value_count_[dev_sensor]++;
+    if (millis() - sensors_last_notified_[dev_sensor] > notify_interval_millis_) {
+      ESP_LOGD(TAG, "notify_data: Device '%s' send data, %i measurements, %.1f average",
+        dev_sensor.c_str(), sensors_value_count_[dev_sensor], 
+        sensors_value_sum_[dev_sensor] / sensors_value_count_[dev_sensor]);
+
+      // time to send data, reset counters
+      this->send_data_mqtt(device, label, 
+        sensors_value_sum_[dev_sensor] / sensors_value_count_[dev_sensor], false);
+      sensors_value_sum_[dev_sensor] = 0.0;
+      sensors_value_count_[dev_sensor] = 0;
+      sensors_last_notified_[dev_sensor] = millis();
+    }
   }
+}
+
+/* Send the current datapoint to MQTT
+ * returns true if successful
+*/
+bool BLE_PROXY::send_data_mqtt(const esp32_ble_tracker::ESPBTDevice &device, 
+    std::string label, double value, bool new_device) {
+  ESP_LOGD(TAG, "Sending to MQTT: Device '%s', Attribute '%s' = %.1f", device.address_str().c_str(), 
+    label.c_str(), value);
+  if (!this->mqtt_parent_->is_connected()) {
+    ESP_LOGD(TAG, "MQTT not connected.");
+    return false;
+  }
+  std::string primary(MQTT_BASE);
+  std::string dev_addr(this->get_device_name(device));
+  std::string topic(primary + "/" + dev_addr + "/" + label + "/" + "state");
+  std::string vala(value_accuracy_to_string(value, 1));
+
+  if (new_device) {
+    this->send_autodiscovery(dev_addr, topic, label);
+  }
+  this->mqtt_parent_->publish(topic, vala, 0, true);
+  ESP_LOGD(TAG, "MQTT published: %s = %s", topic.c_str(), vala.c_str());
+  return true;
 }
 
 /* Send datapoint for autodiscovery for Homeassistant, using default endpoint
 */
 void BLE_PROXY::send_autodiscovery(std::string device, std::string topic, std::string label) {
+  ESP_LOGD(TAG, "MQTT Autodiscovery");
+
   std::string homeroot("homeassistant/sensor");
   std::string nodeid(MQTT_BASE);
   std::string objectid("");
@@ -243,7 +290,9 @@ void BLE_PROXY::send_autodiscovery(std::string device, std::string topic, std::s
   std::string data; // artisinal json
   data = "{ ";
   data += "\"unit_of_measurement\": \"" + units + "\", ";
-  data += "\"icon\": \"" + icon + "\", ";
+  if (icon != "") {
+    data += "\"icon\": \"" + icon + "\", ";
+  }
   data += "\"name\": \"" + device + " " + label + "\", ";
   data += "\"state_topic\": \"" + topic + "\", ";
   data += "\"unique_id\": \"" + objectid + "\", ";
@@ -256,6 +305,47 @@ void BLE_PROXY::send_autodiscovery(std::string device, std::string topic, std::s
   data += " } ";
   this->mqtt_parent_->publish(configtopic, data, 0, true);
   ESP_LOGD(TAG, "MQTT published: %s = %s", configtopic.c_str(), data.c_str());
+}
+
+void BLE_PROXY::update_ble_enabled(bool enabled_yes) {
+  esp_err_t err;
+  ESP_LOGD(TAG, "update_ble_enable to %i", (enabled_yes?1:0));
+  if (enabled_yes) { // Enable BLE
+    ESP_LOGD(TAG, "running esp32_ble_tracker::global_esp32_ble_tracker->setup()");
+    esp32_ble_tracker::global_esp32_ble_tracker->setup();
+    ESP_LOGD(TAG, "esp32_ble_tracker::global_esp32_ble_tracker->setup() complete");
+    if (esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_ENABLED) {
+      ESP_LOGD(TAG, "BLE already enabled, can't enable!");
+    } else {
+      ESP_LOGD(TAG, "BLE currently not enabled, trying to enable");
+      // assuming we use standard esp32_ble_tracker init ...
+      err = esp_bt_controller_enable(ESP_BT_MODE_BLE);
+      if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_bt_controller_enable failed: %s", esp_err_to_name(err));
+      } else {
+        ESP_LOGD(TAG, "BLE now enabled");
+      }
+    }
+  } else { // Disable BLE
+    if (esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_ENABLED) {
+      ESP_LOGD(TAG, "BLE currently enabled, will disable");
+      err = esp_bt_controller_disable();
+      if (err != ESP_OK) {
+        ESP_LOGE(TAG, "BLE esp_bt_controller_disable failed: %s", esp_err_to_name(err));
+      } else {
+        ESP_LOGD(TAG, "BLE disabled.");
+        ESP_LOGD(TAG, "BLE will now deinit() ...");
+        err = esp_bt_controller_deinit(); // kill it all
+        if (err != ESP_OK) {
+          ESP_LOGE(TAG, "BLE esp_bt_controller_deinit failed: %s", esp_err_to_name(err));
+        } else {
+          ESP_LOGD(TAG, "BLE esp_bt_controller_deinit successful.");
+        }
+      }
+    } else {
+      ESP_LOGD(TAG, "BLE NOT enabled, can't disable!");
+    }
+  }
 }
 
 }  // namespace ble_proxy

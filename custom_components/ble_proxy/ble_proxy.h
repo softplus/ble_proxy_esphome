@@ -1,5 +1,5 @@
 /*
-Copyright 2021 John Mueller
+Copyright 2021-2023 John Mueller
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 2 of the License, or
@@ -38,10 +38,14 @@ class BLE_PROXY : public Component, public esp32_ble_tracker::ESPBTDeviceListene
   void add_macs_renamed(const std::string &item) { macs_rename_.insert(item); };
   void set_mqtt_parent(mqtt::MQTTClientComponent *parent) { mqtt_parent_ = parent; }
   void set_reboot_interval(uint32_t update_interval) { reboot_millis_ = millis() + update_interval; }
+  void set_notify_interval(uint32_t notify_interval) { notify_interval_millis_ = notify_interval; }
+  void update_ble_enabled(bool enabled_yes);
 
  protected:
-  void send_data(const esp32_ble_tracker::ESPBTDevice &device, 
+  void notify_data(const esp32_ble_tracker::ESPBTDevice &device, 
     std::string label, double value);
+  bool send_data_mqtt(const esp32_ble_tracker::ESPBTDevice &device, 
+    std::string label, double value, bool new_device);
   std::string get_device_name(const esp32_ble_tracker::ESPBTDevice &device);
   bool can_track(const esp32_ble_tracker::ESPBTDevice &device);
   void send_autodiscovery(std::string device, std::string topic, std::string label);
@@ -54,9 +58,33 @@ class BLE_PROXY : public Component, public esp32_ble_tracker::ESPBTDeviceListene
   std::set<std::string> macs_allowed_;
   std::set<std::string> macs_disallowed_;
   std::set<std::string> macs_rename_;
+  std::map<std::string, long unsigned int> sensors_last_notified_;
+  std::map<std::string, double> sensors_value_sum_;
+  std::map<std::string, int> sensors_value_count_;
   long unsigned int reboot_millis_ = 0;
   long unsigned int seen_devices_notify_millis_ = 0;
+  long unsigned int notify_interval_millis_ = 0;
 };
+
+
+template<typename... Ts> class BleEnableAction : public Action<Ts...> {
+  public:
+    BleEnableAction(BLE_PROXY *ble_prox) : ble_prox_(ble_prox) {}
+    void play(Ts... x) override { this->ble_prox_->update_ble_enabled(true); }
+
+  protected:
+    BLE_PROXY *ble_prox_;
+};
+
+template<typename... Ts> class BleDisableAction : public Action<Ts...> {
+  public:
+    BleDisableAction(BLE_PROXY *ble_prox) : ble_prox_(ble_prox) {}
+    void play(Ts... x) override { this->ble_prox_->update_ble_enabled(false); }
+
+  protected:
+    BLE_PROXY *ble_prox_;
+};
+
 
 }  // namespace ble_proxy
 }  // namespace esphome
