@@ -270,21 +270,22 @@ void BLE_PROXY::send_autodiscovery(std::string device, std::string topic, std::s
   }
   std::string configtopic(homeroot + "/" + nodeid + "/" + objectid + "/config");
   std::string units("");
-  std::string icon("");
+  std::string icon(""); // https://pictogrammers.com/library/mdi/
+  std::string device_class(""); // https://www.home-assistant.io/integrations/sensor/#device-class
   if (label=="temperature") {
-    units = "°C"; icon = "mdi:thermometer";
+    units = "°C"; icon = "mdi:thermometer"; device_class = "temperature";
   } else if (label=="humidity") {
-    units = "%"; icon = "mdi:water-percent";
+    units = "%"; icon = "mdi:water-percent"; device_class = "humidity";
   } else if (label=="battery_level") {
-    units = "%"; icon = "mdi:battery";
+    units = "%"; icon = "mdi:battery"; device_class = "battery";
   } else if (label=="conductivity") {
-    units = "µS/cm"; icon = "";
+    units = "µS/cm"; icon = ""; device_class = "";
   } else if (label=="illuminance") {
-    units = "lx"; icon = "";
+    units = "lx"; icon = ""; device_class = "illuminance";
   } else if (label=="moisture") {
-    units = "%"; icon = "mdi:water-percent";
+    units = "%"; icon = "mdi:water-percent"; device_class = "moisture";
   } else if (label=="tablet") {
-    units = "%"; icon = "";
+    units = "%"; icon = ""; device_class = "";
   }
 
   std::string data; // artisinal json
@@ -292,6 +293,9 @@ void BLE_PROXY::send_autodiscovery(std::string device, std::string topic, std::s
   data += "\"unit_of_measurement\": \"" + units + "\", ";
   if (icon != "") {
     data += "\"icon\": \"" + icon + "\", ";
+  }
+  if (device_class != "") {
+    data += "\"device_class\": \"" + device_class + "\", ";
   }
   data += "\"name\": \"" + device + " " + label + "\", ";
   data += "\"state_topic\": \"" + topic + "\", ";
