@@ -299,6 +299,7 @@ void BLE_PROXY::send_autodiscovery(std::string device, std::string topic, std::s
   }
   data += "\"name\": \"" + device + " " + label + "\", ";
   data += "\"state_topic\": \"" + topic + "\", ";
+  data += "\"state_class\": \"measurement\", ";
   data += "\"unique_id\": \"" + objectid + "\", ";
   data += "\"device\": { ";
   data += "\"identifiers\": \"" + device + "\", ";
